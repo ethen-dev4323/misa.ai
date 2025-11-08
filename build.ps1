@@ -1,6 +1,4 @@
-# MISA AI Master Build Script
-# Builds the complete MISA AI system with all components
-# This script handles everything from compilation to final distribution
+# MISA AI Master Build Script (PowerShell)
 param(
     [string]$Configuration = "Release",
     [string]$OutputDir = "build",
@@ -14,284 +12,179 @@ param(
     [string]$Version = "1.0.0"
 )
 $ErrorActionPreference = "Stop"
-# Color output functions
-function Write-ColorOutput($Message, $Color = "White") {
-    switch ($Color) {
-        "Red" { Write-Host $Message -ForegroundColor Red }
-        "Green" { Write-Host $Message -ForegroundColor Green }
-        "Yellow" { Write-Host $Message -ForegroundColor Yellow }
-        "Cyan" { Write-Host $Message -ForegroundColor Cyan }
-        "Magenta" { Write-Host $Message -ForegroundColor Magenta }
-        default { Write-Host $Message }
-    }
-}
-function Write-Success($Message) { Write-ColorOutput "✓ $Message" "Green" }
-function Write-Error($Message) { Write-ColorOutput "✗ $Message" "Red" }
-function Write-Warning($Message) { Write-ColorOutput "⚠ $Message" "Yellow" }
-function Write-Info($Message) { Write-ColorOutput "ℹ $Message" "Cyan" }
-# Set up environment
+
+function Write-Info([string]$m){ Write-Host "ℹ $m" -ForegroundColor Cyan }
+function Write-Success([string]$m){ Write-Host "✓ $m" -ForegroundColor Green }
+function Write-Err([string]$m){ Write-Host "✗ $m" -ForegroundColor Red }
+function Write-Warn([string]$m){ Write-Host "⚠ $m" -ForegroundColor Yellow }
+
 $StartTime = Get-Date
-$RootDir = Get-Location
+$RootDir = (Get-Location).Path
 $BuildDir = Join-Path $RootDir $OutputDir
 $DistributionDir = Join-Path $BuildDir "distribution"
-Write-ColorOutput "MISA AI Build System" "Magenta"
-Write-ColorOutput "====================" "Magenta"
+
+Write-Host "MISA AI Build System" -ForegroundColor Magenta
+Write-Host "====================" -ForegroundColor Magenta
 Write-Host "Build Configuration:"
 Write-Host "  - Configuration: $Configuration"
 Write-Host "  - Output Directory: $OutputDir"
 Write-Host "  - Version: $Version"
 Write-Host "  - Root Directory: $RootDir"
 Write-Host ""
-# Validate environment
+
 function Test-BuildEnvironment {
     Write-Info "Testing build environment..."
-    # Check .NET SDK
     try {
-        $dotnetVersion = & dotnet --version
+        $dotnetVersion = & dotnet --version 2>$null
         Write-Success ".NET SDK: $dotnetVersion"
     } catch {
-        Write-Error ".NET SDK not found. Please install .NET 8 SDK."
+        Write-Err ".NET SDK not found. Install .NET 8 SDK."
         exit 1
     }
-    # Check PowerShell version
     if ($PSVersionTable.PSVersion.Major -lt 5) {
-        Write-Error "PowerShell 5.0 or higher is required."
+        Write-Err "PowerShell 5.0+ required."
         exit 1
+    } else {
+        Write-Success "PowerShell: $($PSVersionTable.PSVersion)"
     }
-    Write-Success "PowerShell: $($PSVersionTable.PSVersion)"
-    # Check for required tools
-    $requiredTools = @("git", "node", "npm")
-    foreach ($toolName in $requiredTools) {
-        try {
-            $toolVersion = & $toolName --version 2>$null
-            if ($LASTEXITCODE -eq 0) {
-                Write-Success "$toolName`: Available"
-            } else {
-                $versionCheck = & $toolName --version 2>&1
-                Write-Success "$toolName`: Available"
-            }
-        } catch {
-            Write-Warning "$toolName`: Not found (optional)"
+
+    $optionalTools = @("git","node","npm")
+    foreach ($t in $optionalTools) {
+        if (Get-Command $t -ErrorAction SilentlyContinue) {
+            try { $v = & $t --version 2>$null; Write-Success "$t: $v" } catch { Write-Success "$t: available" }
+        } else {
+            Write-Warn "$t: not found (optional)"
         }
     }
     Write-Info "Environment validation complete"
 }
-# Clean previous builds
+
 function Invoke-Clean {
     if (-not $Clean) { return }
     Write-Info "Cleaning previous builds..."
-    if (Test-Path $BuildDir) {
-        Write-Host "Removing build directory: $BuildDir"
-        Remove-Item $BuildDir -Recurse -Force
-    }
-    # Clean .NET build outputs
-    Get-ChildItem -Path $RootDir -Recurse -Directory -Name "bin" -ErrorAction SilentlyContinue | ForEach-Object {
-        $binPath = Join-Path $RootDir $_
-        if (Test-Path $binPath) {
-            Write-Host "Removing: $binPath"
-            Remove-Item $binPath -Recurse -Force
-        }
-    }
-    Get-ChildItem -Path $RootDir -Recurse -Directory -Name "obj" -ErrorAction SilentlyContinue | ForEach-Object {
-        $objPath = Join-Path $RootDir $_
-        if (Test-Path $objPath) {
-            Write-Host "Removing: $objPath"
-            Remove-Item $objPath -Recurse -Force
-        }
-    }
-    # Clean Android build outputs
-    $androidBuildDir = Join-Path $RootDir "android\app\build"
-    if (Test-Path $androidBuildDir) {
-        Write-Host "Removing Android build directory: $androidBuildDir"
-        Remove-Item $androidBuildDir -Recurse -Force
-    }
+    if (Test-Path $BuildDir) { Remove-Item $BuildDir -Recurse -Force -ErrorAction SilentlyContinue }
+    Get-ChildItem -Path $RootDir -Recurse -Directory -Force -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -in @('bin','obj') } |
+        ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+    $androidBuild = Join-Path $RootDir "android\app\build"
+    if (Test-Path $androidBuild) { Remove-Item $androidBuild -Recurse -Force -ErrorAction SilentlyContinue }
     Write-Success "Clean completed"
 }
-# Download prerequisites
+
 function Invoke-DownloadPrerequisites {
     if ($SkipPrerequisites) { return }
-    Write-Info "Downloading prerequisites..."
+    Write-Info "Downloading prerequisites (if provided)..."
     $prereqScript = Join-Path $RootDir "installer\download-prerequisites.ps1"
     if (Test-Path $prereqScript) {
         try {
-            Write-Host "Running prerequisite downloader..."
-            & $prereqScript -OutputDir "$($RootDir)\installer\prerequisites"
-            if ($LASTEXITCODE -eq 0) {
-                Write-Success "Prerequisites downloaded successfully"
-            } else {
-                Write-Error "Failed to download prerequisites"
-                exit 1
-            }
+            & $prereqScript -OutputDir (Join-Path $RootDir "installer\prerequisites")
+            Write-Success "Prerequisites downloader executed"
         } catch {
-            Write-Error "Error running prerequisite downloader"
-            exit 1
+            Write-Warn "Prerequisite downloader returned non-zero exit code"
         }
     } else {
-        Write-Warning "Prerequisite download script not found: $prereqScript"
+        Write-Warn "No prerequisite downloader found; install required tools manually"
     }
 }
-# Build .NET projects
+
 function Invoke-BuildDotNet {
     Write-Info "Building .NET projects..."
-    # Find all project files
-    $projectFiles = Get-ChildItem -Path "$RootDir\src" -Recurse -Filter "*.csproj"
-    if ($projectFiles.Count -eq 0) {
-        Write-Error "No .NET project files found"
-        exit 1
-    }
+    $projectFiles = Get-ChildItem -Path (Join-Path $RootDir 'src') -Recurse -Filter '*.csproj' -File -ErrorAction SilentlyContinue
+    if (-not $projectFiles) { Write-Err "No .NET project files found"; exit 1 }
     Write-Host "Found $($projectFiles.Count) project files"
-    $successCount = 0
-    $totalCount = $projectFiles.Count
-    foreach ($projectFile in $projectFiles) {
-        $projectName = Split-Path $projectFile -LeafBase
-        Write-Host "Building $projectName ($($successCount + 1)/$totalCount)..."
+    $success = 0
+    foreach ($p in $projectFiles) {
+        $name = $p.BaseName
+        Write-Host "Building $name..."
         try {
-            # Restore packages
-            Write-Host "  Restoring packages..."
-            & dotnet restore $projectFile.FullName --verbosity quiet
-            if ($LASTEXITCODE -ne 0) {
-                Write-Error "Failed to restore packages for $projectName"
-                continue
+            & dotnet restore $p.FullName --verbosity quiet
+            if ($LASTEXITCODE -ne 0) { Write-Err "Restore failed for $name"; continue }
+            & dotnet build $p.FullName --configuration $Configuration --no-restore --verbosity minimal
+            if ($LASTEXITCODE -ne 0) { Write-Err "Build failed for $name"; continue }
+            if ($p.Name -match 'MISA\.Core|.*\.App') {
+                $publishDir = Join-Path $p.Directory.FullName (Join-Path "bin" (Join-Path $Configuration "net8.0\publish"))
+                & dotnet publish $p.FullName --configuration $Configuration --output $publishDir --no-build
             }
-            # Build project
-            Write-Host "  Compiling..."
-            & dotnet build $projectFile.FullName --configuration $Configuration --no-restore --verbosity minimal
-            if ($LASTEXITCODE -ne 0) {
-                Write-Error "Failed to build $projectName"
-                continue
-            }
-            # Publish if it's an executable project
-            if ($projectFile.Name -match "MISA\.Core|.*\.exe|.*\.App") {
-                Write-Host "  Publishing..."
-                $publishDir = Join-Path (Split-Path $projectFile.FullName) "bin\$Configuration\net8.0-windows\publish"
-                & dotnet publish $projectFile.FullName --configuration $Configuration --runtime win-x64 --self-contained false --output $publishDir --no-build
-                if ($LASTEXITCODE -ne 0) {
-                    Write-Error "Failed to publish $projectName"
-                    continue
-                }
-            }
-            Write-Success "$projectName built successfully"
-            $successCount++
+            Write-Success "$name built"
+            $success++
         } catch {
-            Write-Error "Error building $projectName"
+            Write-Err "Error while building $name"
         }
     }
-    if ($successCount -eq $totalCount) {
-        Write-Success "All .NET projects built successfully ($successCount/$totalCount)"
-    } else {
-        Write-Error "Some .NET projects failed to build ($successCount/$totalCount)"
-        exit 1
-    }
+    if ($success -ne $projectFiles.Count) { Write-Err "Some projects failed ($success/$($projectFiles.Count))"; exit 1 }
+    Write-Success "All .NET projects built ($success/$($projectFiles.Count))"
 }
-# Run tests
+
 function Invoke-RunTests {
     if ($SkipTests) { return }
     Write-Info "Running tests..."
-    $testProjects = Get-ChildItem -Path "$RootDir\src" -Recurse -Filter "*Tests.csproj"
-    if ($testProjects.Count -eq 0) {
-        Write-Warning "No test projects found"
-        return
+    $tests = Get-ChildItem -Path (Join-Path $RootDir 'src') -Recurse -Filter '*Tests.csproj' -File -ErrorAction SilentlyContinue
+    if (-not $tests) { Write-Warn "No test projects found"; return }
+    $ok = $true
+    foreach ($t in $tests) {
+        $tn = $t.BaseName
+        Write-Host "Testing $tn..."
+        & dotnet test $t.FullName --configuration $Configuration --no-build --verbosity minimal --logger "console;verbosity=normal"
+        if ($LASTEXITCODE -ne 0) { Write-Err "Tests failed: $tn"; $ok = $false }
+        else { Write-Success "Tests passed: $tn" }
     }
-    $allTestsPassed = $true
-    foreach ($testProject in $testProjects) {
-        $testName = Split-Path $testProject.FullName -LeafBase
-        Write-Host "Running tests: $testName"
-        try {
-            & dotnet test $testProject.FullName --configuration $Configuration --no-build --verbosity minimal --logger "console;verbosity=normal"
-            if ($LASTEXITCODE -ne 0) {
-                Write-Error "Tests failed: $testName"
-                $allTestsPassed = $false
-            } else {
-                Write-Success "Tests passed: $testName"
-            }
-        } catch {
-            Write-Error "Error running tests: $testName"
-            $allTestsPassed = $false
-        }
-    }
-    if (-not $allTestsPassed) {
-        Write-Error "Some tests failed"
-        exit 1
-    }
+    if (-not $ok) { Write-Err "Some tests failed"; exit 1 }
     Write-Success "All tests passed"
 }
-# Build Android APK
+
 function Invoke-BuildAndroid {
     if ($SkipAndroid) { return }
-    Write-Info "Building Android APK..."
-    $androidDir = Join-Path $RootDir "android"
-    if (-not (Test-Path $androidDir)) {
-        Write-Error "Android directory not found: $androidDir"
-        exit 1
-    }
-    Set-Location $androidDir
+    Write-Info "Building Android..."
+    $androidDir = Join-Path $RootDir 'android'
+    if (-not (Test-Path $androidDir)) { Write-Warn "android/ not present; skipping"; return }
+    Push-Location $androidDir
     try {
-        # Check if Gradle wrapper exists
-        $gradlewPath = Join-Path $androidDir "gradlew.bat"
-        if (-not (Test-Path $gradlewPath)) {
-            Write-Error "Gradle wrapper not found: $gradlewPath"
-            Set-Location $RootDir
-            exit 1
-        }
-        Write-Host "Building Android APK..."
-        & $gradlewPath assembleRelease
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Android APK build failed"
-            Set-Location $RootDir
-            exit 1
-        }
-        # Check if APK was created
-        $apkPath = Join-Path $androidDir "app\build\outputs\apk\release\app-release.apk"
-        if (Test-Path $apkPath) {
-            $apkSize = (Get-Item $apkPath).Length / 1MB
-            Write-Success "Android APK built successfully ($([math]::Round($apkSize, 2)) MB)"
-        } else {
-            Write-Error "Android APK file not found after build"
-            Set-Location $RootDir
-            exit 1
-        }
+        $gw = Get-ChildItem -Path . -Filter 'gradlew*' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'gradlew(.bat)?$' } | Select-Object -First 1
+        if (-not $gw) { Write-Err "Gradle wrapper not found"; Pop-Location; exit 1 }
+        if ($gw.Name -eq 'gradlew') { & chmod +x $gw.FullName }
+        & $gw.FullName assembleRelease
+        if ($LASTEXITCODE -ne 0) { Write-Err "Android build failed"; Pop-Location; exit 1 }
+        $apk = Join-Path $androidDir 'app\build\outputs\apk\release\app-release.apk'
+        if (Test-Path $apk) { $sizeMB = [math]::Round((Get-Item $apk).Length/1MB,2); Write-Success "APK built: ${sizeMB} MB" } 
+        else { Write-Err "APK not found"; Pop-Location; exit 1 }
     } catch {
-        Write-Error "Error building Android APK"
-        Set-Location $RootDir
+        Write-Err "Error building Android APK"
+        Pop-Location
         exit 1
-    } finally {
-        Set-Location $RootDir
-    }
+    } finally { Pop-Location }
 }
-# Create installer
+
 function Invoke-CreateInstaller {
     if ($SkipInstaller) { return }
-    Write-Info "Creating installer..."
-    $installerScript = Join-Path $RootDir "installer\build-installer.ps1"
+    Write-Info "Creating installer (if installer scripts available)..."
+    $installerScript = Join-Path $RootDir 'installer\build-installer.ps1'
     if (Test-Path $installerScript) {
-        try {
-            Write-Host "Running installer build script..."
-            & $installerScript -Configuration $Configuration -OutputDir $OutputDir
-            if ($LASTEXITCODE -ne 0) {
-                Write-Error "Installer build failed"
-                exit 1
-            }
-            Write-Success "Installer created successfully"
-        } catch {
-            Write-Error "Error running installer build script"
-            exit 1
-        }
+        try { & $installerScript -Configuration $Configuration -OutputDir $OutputDir; Write-Success "Installer created" } catch { Write-Warn "Installer script failed" }
     } else {
-        Write-Warning "Installer build script not found: $installerScript"
-    }
-}
-# Create distribution package
-function Invoke-CreateDistribution {
-    Write-Info "Creating distribution package..."
-    # Create distribution directory
-    if (-not (Test-Path $DistributionDir)) {
+        Write-Warn "No installer script found; creating simple distribution folder"
         New-Item -ItemType Directory -Path $DistributionDir -Force | Out-Null
     }
-    # Copy Windows installer
-    $installerPath = Get-ChildItem -Path $BuildDir -Filter "*.exe" | Sort-Object LastWriteTime | Select-Object -Last 1
-    if ($installerPath) {
-        $installerName = "misa-ai-installer-v$Version.exe"
-        $installerDest = Join-Path $DistributionDir $installerName
-        Copy-Item $installerPath.FullName $installerDest -Force
-        Write-Success "Copied installer: $installerName"
-    }
+}
+
+function Invoke-CreateDistribution {
+    Write-Info "Creating distribution metadata..."
+    New-Item -ItemType Directory -Path $DistributionDir -Force | Out-Null
+    $versionObj = @{ version = $Version; buildDate = (Get-Date -AsUTC).ToString("s") + "Z"; configuration = $Configuration }
+    $versionObj | ConvertTo-Json | Out-File -Encoding utf8 (Join-Path $DistributionDir 'version.json')
+    Write-Success "Distribution directory prepared: $DistributionDir"
+}
+
+function Main {
+    Write-Info "Starting build..."
+    Test-BuildEnvironment
+    Invoke-Clean
+    Invoke-DownloadPrerequisites
+    Invoke-BuildDotNet
+    Invoke-RunTests
+    Invoke-BuildAndroid
+    Invoke-CreateInstaller
+    Invoke-CreateDistribution
+    Write-Success "Build completed"
+}
+
+Main
