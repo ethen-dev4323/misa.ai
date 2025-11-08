@@ -531,7 +531,7 @@ function Invoke-GenerateBuildReport {
     $duration = $endTime - $StartTime
 
     $report = @{
-        buildId = [System.Guid]::NewGuid().ToString("N")[..16]
+        buildId = [System.Guid]::NewGuid().ToString("N").Substring(0, 16)
         version = $Version
         configuration = $Configuration
         startTime = $StartTime
