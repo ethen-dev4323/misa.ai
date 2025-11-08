@@ -1,0 +1,70 @@
+// Top-level build file where you can add configuration options common to all sub-modules.
+buildscript {
+    ext {
+        compose_version = '1.5.4'
+        kotlin_version = '1.9.10'
+        gradle_version = '8.1.2'
+    }
+
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+
+    dependencies {
+        classpath "com.android.tools.build:gradle:$gradle_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+plugins {
+    id 'com.android.application' version '8.1.2' apply false
+    id 'com.android.library' version '8.1.2' apply false
+    id 'org.jetbrains.kotlin.android' version '1.9.10' apply false
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        maven { url 'https://maven.google.com' }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+// Custom task to create MISA Android project structure
+task createMISAProjectStructure {
+    doLast {
+        def appDir = file('app/src/main')
+
+        // Create Java package directories
+        mkdir "${appDir}/java/com/misaai"
+        mkdir "${appDir}/java/com/misaai/activities"
+        mkdir "${appDir}/java/com/misaai/fragments"
+        mkdir "${appDir}/java/com/misaai/services"
+        mkdir "${appDir}/java/com/misaai/network"
+        mkdir "${appDir}/java/com/misaai/utils"
+        mkdir "${appDir}/java/com/misaai/ui"
+        mkdir "${appDir}/java/com/misaai/models"
+
+        // Create resource directories
+        mkdir "${appDir}/res/layout"
+        mkdir "${appDir}/res/values"
+        mkdir "${appDir}/res/drawable"
+        mkdir "${appDir}/res/mipmap-hdpi"
+        mkdir "${appDir}/res/mipmap-mdpi"
+        mkdir "${appDir}/res/mipmap-xhdpi"
+        mkdir "${appDir}/res/mipmap-xxhdpi"
+        mkdir "${appDir}/res/mipmap-xxxhdpi"
+
+        println "MISA Android project structure created successfully"
+    }
+}

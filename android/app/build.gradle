@@ -1,0 +1,186 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.misaai'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.misaai"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // Add build config fields for MISA configuration
+        buildConfigField "String", "MISA_API_BASE_URL", "\"https://api.misa.ai\""
+        buildConfigField "String", "MISA_WS_BASE_URL", "\"wss://ws.misa.ai\""
+        buildConfigField "String", "MISA_VERSION", "\"1.0.0\""
+        buildConfigField "int", "MISA_API_VERSION", 1
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            // Add signing configuration
+            signingConfigs {
+                release {
+                    storeFile file('../keystore/misa-release.keystore')
+                    storePassword 'misa123456'
+                    keyAlias 'misa-key'
+                    keyPassword 'misa123456'
+                }
+            }
+
+            buildConfigField "boolean", "DEBUG_MODE", "false"
+        }
+
+        debug {
+            debuggable true
+            buildConfigField "boolean", "DEBUG_MODE", "true"
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+    packagingOptions {
+        pickFirst '**/libc++_shared.so'
+        pickFirst '**/libjsc.so'
+    }
+}
+
+dependencies {
+    // Android core libraries
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.10.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.navigation:navigation-fragment:2.7.4'
+    implementation 'androidx.navigation:navigation-ui:2.7.4'
+    implementation 'androidx.fragment:fragment:1.6.2'
+    implementation 'androidx.activity:activity:1.8.1'
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.6.2'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.6.2'
+
+    // Networking
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+    implementation 'org.java-websocket:Java-WebSocket:1.5.4'
+
+    // WebRTC
+    implementation 'org.webrtc:google-webrtc:1.0.32006'
+
+    // Image loading and processing
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    implementation 'com.github.bumptech.glide:okhttp3-integration:4.16.0'
+
+    // JSON parsing
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    // QR Code scanning
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+    implementation 'com.google.zxing:core:3.5.2'
+
+    // Permissions
+    implementation 'pub.devrel:easypermissions:3.0.0'
+
+    // File operations
+    implementation 'commons-io:commons-io:2.11.0'
+
+    // Utilities
+    implementation 'androidx.work:work-runtime:2.8.1'
+    implementation 'androidx.preference:preference:1.2.1'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+
+    // Testing dependencies
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:5.6.0'
+    testImplementation 'org.robolectric:robolectric:4.11.1'
+
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test:rules:1.5.0'
+}
+
+// Task to generate APK with custom configuration
+task generateMISAApk(type: Exec) {
+    def buildType = project.hasProperty('release') ? 'release' : 'debug'
+    def outputDir = file('../../build/android')
+
+    // Create output directory
+    outputDir.mkdirs()
+
+    // Build the APK
+    def command = [
+        './gradlew',
+        "assemble${buildType.capitalize()}"
+    ]
+
+    if (buildType == 'release') {
+        command << '-Pandroid.injected.signing.store.file=../keystore/misa-release.keystore'
+        command << '-Pandroid.injected.signing.store.password=misa123456'
+        command << '-Pandroid.injected.signing.key.alias=misa-key'
+        command << '-Pandroid.injected.signing.key.password=misa123456'
+    }
+
+    commandLine command
+
+    doLast {
+        // Copy APK to output directory with MISA-specific name
+        def apkFile = buildType == 'release' ?
+            file('build/outputs/apk/release/app-release.apk') :
+            file('build/outputs/apk/debug/app-debug.apk')
+
+        if (apkFile.exists()) {
+            def timestamp = new Date().format('yyyyMMdd-HHmmss')
+            def outputApk = new File(outputDir, "misa-android-${buildType}-${timestamp}.apk")
+            copy {
+                from apkFile
+                into outputDir
+                rename { "misa-android-${buildType}-${timestamp}.apk" }
+            }
+            println "MISA APK generated: ${outputApk.absolutePath}"
+        }
+    }
+}
+
+// Make sure the keystore directory exists
+task createKeystore {
+    def keystoreDir = file('../keystore')
+    if (!keystoreDir.exists()) {
+        keystoreDir.mkdirs()
+    }
+
+    def keystoreFile = file('../keystore/misa-release.keystore')
+    if (!keystoreFile.exists()) {
+        // Create a keystore for release builds (in real scenario, this should be provided)
+        println "Warning: Release keystore not found. Creating debug keystore."
+        // In production, this should be handled properly with real signing keys
+    }
+}
+
+// Build dependencies
+preBuild.dependsOn createKeystore

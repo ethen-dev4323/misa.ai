@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/misa_background"
+    tools:context=".ui.ChatFragment">
+
+    <!-- Header -->
+    <LinearLayout
+        android:id="@+id/headerLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical"
+        android:background="@drawable/header_background"
+        android:elevation="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_arrow_back"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/back"
+            android:tint="@color/misa_text" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="MISA AI"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/misa_text" />
+
+            <TextView
+                android:id="@+id/tvPersonalityStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Girlfriend - Caring"
+                android:textSize="12sp"
+                android:textColor="@color/misa_text_secondary" />
+
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnPersonality"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_personality"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/personality_settings"
+            android:tint="@color/misa_primary" />
+
+    </LinearLayout>
+
+    <!-- Messages RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMessages"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="8dp"
+        android:clipToPadding="false"
+        android:scrollbars="vertical"
+        android:overScrollMode="ifContentScrolls"
+        app:layout_constraintTop_toBottomOf="@id/headerLayout"
+        app:layout_constraintBottom_toTopOf="@id/inputPanel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:listitem="@layout/item_message_user" />
+
+    <!-- Typing Indicator -->
+    <LinearLayout
+        android:id="@+id/typingIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/typing_indicator_background"
+        android:padding="12dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/inputPanel"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ProgressBar
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:indeterminateTint="@color/misa_primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MISA is typing..."
+            android:textSize="12sp"
+            android:textColor="@color/misa_text_secondary"
+            android:layout_marginStart="8dp" />
+
+    </LinearLayout>
+
+    <!-- Input Panel -->
+    <LinearLayout
+        android:id="@+id/inputPanel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/input_panel_background"
+        android:elevation="8dp"
+        android:padding="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Voice Input Row -->
+        <LinearLayout
+            android:id="@+id/voiceInputRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp"
+            android:visibility="visible">
+
+            <ImageButton
+                android:id="@+id/btnVoiceInput"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_mic"
+                android:background="@drawable/voice_button_background"
+                android:contentDescription="@string/voice_input"
+                android:tint="@android:color/white"
+                android:layout_marginEnd="12dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/tvVoiceStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tap to speak"
+                    android:textSize="14sp"
+                    android:textColor="@color/misa_text_secondary" />
+
+                <TextView
+                    android:id="@+id/tvVoiceText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="12sp"
+                    android:textColor="@color/misa_text"
+                    android:layout_marginTop="4dp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/btnKeyboardToggle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_keyboard"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/keyboard"
+                android:tint="@color/misa_text" />
+
+        </LinearLayout>
+
+        <!-- Text Input Row -->
+        <LinearLayout
+            android:id="@+id/textInputRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="bottom"
+            android:visibility="gone">
+
+            <!-- Attachment Button -->
+            <ImageButton
+                android:id="@+id/btnAttachment"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_attachment"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/attach_file"
+                android:tint="@color/misa_text"
+                android:layout_marginEnd="8dp" />
+
+            <!-- Text Input -->
+            <EditText
+                android:id="@+id/etMessage"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Type your message..."
+                android:textSize="16sp"
+                android:textColor="@color/misa_text"
+                android:textColorHint="@color/misa_text_secondary"
+                android:background="@drawable/message_input_background"
+                android:padding="12dp"
+                android:maxLines="4"
+                android:inputType="textMultiLine|textCapSentences|textAutoCorrect"
+                android:imeOptions="actionSend"
+                android:layout_marginEnd="8dp" />
+
+            <!-- Send Button -->
+            <ImageButton
+                android:id="@+id/btnSend"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_send"
+                android:background="@drawable/send_button_background"
+                android:contentDescription="@string/send_message"
+                android:tint="@android:color/white" />
+
+        </LinearLayout>
+
+        <!-- Quick Responses -->
+        <HorizontalScrollView
+            android:id="@+id/quickResponsesContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:scrollbars="none"
+            android:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/quickResponse1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="How are you?"
+                    android:textSize="12sp"
+                    android:textColor="@color/misa_primary"
+                    android:background="@drawable/quick_response_background"
+                    android:padding="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <TextView
+                    android:id="@+id/quickResponse2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tell me a joke"
+                    android:textSize="12sp"
+                    android:textColor="@color/misa_primary"
+                    android:background="@drawable/quick_response_background"
+                    android:padding="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <TextView
+                    android:id="@+id/quickResponse3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Help me with"
+                    android:textSize="12sp"
+                    android:textColor="@color/misa_primary"
+                    android:background="@drawable/quick_response_background"
+                    android:padding="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <TextView
+                    android:id="@+id/quickResponse4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="I miss you"
+                    android:textSize="12sp"
+                    android:textColor="@color/misa_primary"
+                    android:background="@drawable/quick_response_background"
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+            </LinearLayout>
+
+        </HorizontalScrollView>
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
