@@ -1,0 +1,19 @@
+# MISA AI Icon Placeholder
+#
+# This file indicates that an icon file should be placed here.
+#
+# Required files:
+# - misa-icon.ico (main application icon)
+# - wizard-image.bmp (installer wizard banner)
+# - wizard-small.bmp (installer wizard small image)
+#
+# Icon specifications:
+# - misa-icon.ico: 256x256, 32-bit, multiple sizes (16, 32, 48, 64, 128, 256)
+# - wizard-image.bmp: 496x312 pixels
+# - wizard-small.bmp: 55x55 pixels
+#
+# Design guidelines:
+# - Modern, clean AI/tech aesthetic
+# - Blue/purple color scheme with neural network elements
+# - Recognizable as an AI assistant
+# - Professional yet friendly appearance
