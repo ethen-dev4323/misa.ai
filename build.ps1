@@ -71,17 +71,17 @@ function Test-BuildEnvironment {
 
     # Check for required tools
     $requiredTools = @("git", "node", "npm")
-    foreach ($tool in $requiredTools) {
+    foreach ($toolName in $requiredTools) {
         try {
-            $toolVersion = & $tool --version 2>$null
+            $toolVersion = & $toolName --version 2>$null
             if ($LASTEXITCODE -eq 0) {
-                Write-Success "$tool: Available"
+                Write-Success "$toolName`: Available"
             } else {
-                $versionCheck = & $tool --version 2>&1
-                Write-Success "$tool: Available"
+                $versionCheck = & $toolName --version 2>&1
+                Write-Success "$toolName`: Available"
             }
         } catch {
-            Write-Warning "$tool: Not found (optional)"
+            Write-Warning "$toolName`: Not found (optional)"
         }
     }
 
